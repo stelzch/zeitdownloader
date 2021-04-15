@@ -3,7 +3,7 @@
 This is a simple downloader for the digital formats of the weekly newspaper [Die Zeit](https://www.zeit.de). A digital subscription is required.
 It is written in only 70 lines of python
 
-[![asciicast](https://asciinema.org/a/2Eg8PPKI47iFGxRYFP8Kigqz3.svg)](https://asciinema.org/a/2Eg8PPKI47iFGxRYFP8Kigqz3)
+[![asciicast Demo](https://asciinema.org/a/yUSupdGELwQc1KvLUlJmbXwch.svg)](https://asciinema.org/a/yUSupdGELwQc1KvLUlJmbXwch)
 
 ## Installation
 
@@ -11,6 +11,7 @@ It is written in only 70 lines of python
 2. Make sure the requirements are installed:
     * `sudo pip3 install -r requirements.txt`
 3. Run with `./zeitdownload.py`.
+4. To install globally, run `sudo python3 setup.py install`.
 
 ## Documentation
 
