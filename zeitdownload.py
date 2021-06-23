@@ -3,6 +3,7 @@ import requests
 import lxml.html
 import cgi
 import sys
+import re
 from argparse import ArgumentParser
 
 parser = ArgumentParser(description='Download "Die Zeit" in multiple formats from the premium subscription service')
@@ -32,6 +33,7 @@ if formats == None:
 
 RELEASE_XPATH = '//p[@class="epaper-info-release-date"]'
 DOWNLOAD_XPATH = "//a[contains(text(), '{}')]"
+DATE_REGEX = r"^\d{2}\.\d{2}\.\d{4}$"
 
 s = requests.Session()
 response = s.post('https://meine.zeit.de/anmelden', {
@@ -57,8 +59,11 @@ response = s.get('https://epaper.zeit.de/abo/diezeit')
 document = lxml.html.fromstring(response.text)
 release_dates = list(map(lambda el: el.text,
         document.xpath(RELEASE_XPATH)))
-
 latest_release = release_dates[0]
+
+if not re.match(DATE_REGEX, latest_release):
+    print(f"Scraping broken, {latest_release} not valid date.")
+
 response = s.get(f"https://epaper.zeit.de/abo/diezeit/{latest_release}")
 document = lxml.html.fromstring(response.text)
 
@@ -72,13 +77,9 @@ for fmt in formats:
             if not link.startswith('https') else link)
 
     # Get filename from Content-Disposition header
-    filename = ''
-    if 'Content-Disposition' in response.headers.keys():
-        value, params = cgi.parse_header(response.headers['Content-Disposition'])
-        filename = params['filename']
-    else:
-        filename = link.split('/')[-1]
+    date = "-".join(latest_release.split(".")[::-1])
+    filename = 'die_zeit_' + date + "." + fmt
 
     with open(filename, 'wb') as file:
         file.write(response.content)
-    print(f"Downloaded {fmt}.")
+    print(f"Downloaded {fmt} to {filename}")
