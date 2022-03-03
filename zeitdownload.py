@@ -36,14 +36,21 @@ DOWNLOAD_XPATH = "//a[contains(text(), '{}')]"
 DATE_REGEX = r"^\d{2}\.\d{2}\.\d{4}$"
 
 s = requests.Session()
+headers = {
+        'Origin': 'https://meine.zeit.de',
+}
+
+login_page = s.get('https://meine.zeit.de/anmelden?url=https%3A%2F%2Fwww.zeit.de%2Findex&entry_service=sonstige')
+
 response = s.post('https://meine.zeit.de/anmelden', {
     'entry_service': 'sonstige',
     'product_id': 'sonstige',
     'return_url': 'https://www.zeit.de/index',
     'email': email,
     'pass': password,
-    'permanent': 'on'
-})
+    'csrf_token': s.cookies['csrf_token']
+}, headers=headers)
+
 if not 'zeit_sso_201501' in s.cookies:
     print("Invalid login.")
     sys.exit(-1)
