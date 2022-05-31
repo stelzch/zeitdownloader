@@ -90,7 +90,7 @@ for fmt in formats:
 
     if os.path.exists(filename) and not forcereload:
         print("File already exits. If you want to download anyway, use --reload")
-        sys.exit(-1)
+        continue
 
     print(f"Downloading {fmt} from {link}...")
     response = s.get("https://epaper.zeit.de" + link 
