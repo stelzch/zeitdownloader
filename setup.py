@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
         name = "zeitdownload",
-        version = "1.0.2",
+        version = "1.0.3",
         author = "Christoph Stelz",
         author_email = "mail+python@ch-st.de",
         description = "Download the digital version of the newspaper \"Die Zeit\"",
