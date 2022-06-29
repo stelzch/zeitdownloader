@@ -5,6 +5,7 @@ import cgi
 import sys
 import re
 import os.path
+import hashlib
 from argparse import ArgumentParser
 
 parser = ArgumentParser(description='Download "Die Zeit" in multiple formats from the premium subscription service')
@@ -34,6 +35,19 @@ formats = args.formats
 if formats == None:
     print("No formats specified, all done.")
     sys.exit(0)
+
+
+# Src: https://stackoverflow.com/questions/22058048/hashing-a-file-in-python#22058673
+def md5sum(path):
+    BUF_SIZE = 4 * 1024 * 1024 # 4 MiB
+    md5 = hashlib.md5()
+    with open(path, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            md5.update(data)
+    return md5.hexdigest()
 
 RELEASE_XPATH = '//p[@class="epaper-info-release-date"]'
 DOWNLOAD_XPATH = "//a[contains(text(), '{}')]"
@@ -88,13 +102,27 @@ for fmt in formats:
     date = "-".join(latest_release.split(".")[::-1])
     filename = 'die_zeit_' + date + "." + fmt
 
+    request_headers = {}
     if os.path.exists(filename) and not forcereload:
-        print("File already exits. If you want to download anyway, use --reload")
+        # Somehow E-Tags do not work for PDF
+        if fmt == 'pdf':
+            print(f"File {filename} already exits. If you want to download anyway, use --reload")
+            continue
+        else:
+            request_headers["If-None-Match"] = '"' + md5sum(filename) + '"'
+
+    url = "https://epaper.zeit.de" + link \
+            if not link.startswith('https') else link
+    print(f"Downloading {fmt} from {url}...")
+    response = s.get(url, headers=request_headers)
+
+    if response.status_code == 304:
+        print("  => Skipped, file did not change")
         continue
 
-    print(f"Downloading {fmt} from {link}...")
-    response = s.get("https://epaper.zeit.de" + link 
-            if not link.startswith('https') else link)
+    if response.status_code != 200:
+        print(f"Request for {url} returned status {response.status_code}", file=sys.stderr)
+        sys.exit(-1)
 
     with open(filename, 'wb') as file:
         file.write(response.content)
