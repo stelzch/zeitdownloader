@@ -4,6 +4,7 @@ import lxml.html
 import cgi
 import sys
 import re
+import os.path
 from argparse import ArgumentParser
 
 parser = ArgumentParser(description='Download "Die Zeit" in multiple formats from the premium subscription service')
@@ -11,6 +12,8 @@ parser.add_argument('--email', type=str, required=True,
         help='Email you used for the digital subscription signup')
 parser.add_argument('--password', type=str, required=True,
         help='Corresponding password')
+parser.add_argument('--reload', default=False, action='store_true',
+        help='Download file even though it already exists')
 parser.add_argument('--pdf', dest='formats',
         action='append_const', const='pdf',
         help='Download full-page PDF')
@@ -25,6 +28,7 @@ args = parser.parse_args()
 
 email = args.email
 password = args.password
+forcereload = args.reload
 formats = args.formats
 
 if formats == None:
@@ -79,13 +83,18 @@ for fmt in formats:
     if len(link_elements) < 1:
         print(f"Skipping {fmt} download, scraping broken")
     link = link_elements[0].attrib['href']
-    print(f"Downloading {fmt} from {link}...")
-    response = s.get("https://epaper.zeit.de" + link 
-            if not link.startswith('https') else link)
 
     # Get filename from Content-Disposition header
     date = "-".join(latest_release.split(".")[::-1])
     filename = 'die_zeit_' + date + "." + fmt
+
+    if os.path.exists(filename) and not forcereload:
+        print("File already exits. If you want to download anyway, use --reload")
+        continue
+
+    print(f"Downloading {fmt} from {link}...")
+    response = s.get("https://epaper.zeit.de" + link 
+            if not link.startswith('https') else link)
 
     with open(filename, 'wb') as file:
         file.write(response.content)
