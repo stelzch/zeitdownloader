@@ -21,9 +21,6 @@ parser.add_argument('--pdf', dest='formats',
 parser.add_argument('--epub', dest='formats',
         action='append_const', const='epub',
         help='Download EPUB file for E-Readers')
-parser.add_argument('--mobi', dest='formats',
-        action='append_const', const='mobi',
-        help='Download MOBI file for Kindles')
 
 args = parser.parse_args()
 
@@ -75,8 +72,7 @@ if not 'zeit_sso_201501' in s.cookies:
 
 format_btns = {
     'pdf': 'GESAMT-PDF LADEN',
-    'epub': 'EPUB FÜR E-READER LADEN',
-    'mobi': 'MOBI FÜR KINDLE LADEN'
+    'epub': 'EPUB FÜR E-READER LADEN'
 }
 
 response = s.get('https://epaper.zeit.de/abo/diezeit')

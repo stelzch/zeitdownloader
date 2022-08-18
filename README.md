@@ -1,7 +1,7 @@
 # Die ZEIT Downloader
 
 This is a simple downloader for the digital formats of the weekly newspaper [Die Zeit](https://www.zeit.de). A digital subscription is required.
-It is written in only 130 lines of python
+It is written in 125 lines of python
 
 [![asciicast Demo](https://asciinema.org/a/yUSupdGELwQc1KvLUlJmbXwch.svg)](https://asciinema.org/a/yUSupdGELwQc1KvLUlJmbXwch)
 
@@ -9,7 +9,6 @@ It is written in only 130 lines of python
 
 ## Features
 
-* Download with simple python file
 * Specify formats that are to be downloaded
 * Skip redownload if file content matches (epub, mobi) or if file already exists (pdf) unless explicitly specified with `--reload`
 
@@ -25,7 +24,7 @@ It is written in only 130 lines of python
 ## Documentation
 
 ```
-usage: zeitdownload.py [-h] --email EMAIL --password PASSWORD [--reload] [--pdf] [--epub] [--mobi]
+usage: zeitdownload.py [-h] --email EMAIL --password PASSWORD [--reload] [--pdf] [--epub]
 
 Download "Die Zeit" in multiple formats from the premium subscription service
 
@@ -36,5 +35,4 @@ options:
   --reload             Download file even though it already exists
   --pdf                Download full-page PDF
   --epub               Download EPUB file for E-Readers
-  --mobi               Download MOBI file for Kindles
 ```
