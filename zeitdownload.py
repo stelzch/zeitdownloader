@@ -27,7 +27,7 @@ parser.add_argument('--epub', dest='formats',
         help='Download EPUB file for E-Readers')
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--date', type=str,
-        help='Download file from specified date (dd.mm.yy)')
+        help='Download file from specified date (dd.mm.yyyy)')
 group.add_argument('--num-release', type=int, choices=range(0, 7),
         help='Download one of the past releases by numbers from the current one; \n \
         0 is the current release, 1 the previous one, up until 7')
