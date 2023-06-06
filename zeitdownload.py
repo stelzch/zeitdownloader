@@ -8,6 +8,10 @@ import os.path
 import hashlib
 from argparse import ArgumentParser
 
+RELEASE_XPATH = '//p[@class="epaper-info-release-date"]'
+DOWNLOAD_XPATH = "//a[contains(text(), '{}')]"
+DATE_REGEX = r"^\d{2}\.\d{2}\.\d{4}$"
+
 parser = ArgumentParser(description='Download "Die Zeit" in multiple formats from the premium subscription service')
 parser.add_argument('--email', type=str, required=True,
         help='Email you used for the digital subscription signup')
@@ -21,18 +25,29 @@ parser.add_argument('--pdf', dest='formats',
 parser.add_argument('--epub', dest='formats',
         action='append_const', const='epub',
         help='Download EPUB file for E-Readers')
-
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--date', type=str,
+        help='Download file from specified date (dd.mm.yyyy)')
+group.add_argument('--num-release', type=int, choices=range(0, 7),
+        help='Download one of the past releases by numbers from the current one; \n \
+        0 is the current release, 1 the previous one, up until 7')
 args = parser.parse_args()
 
 email = args.email
 password = args.password
 forcereload = args.reload
 formats = args.formats
+release_date = args.date
+num_release = args.num_release
+
+if release_date:
+    if not re.match(DATE_REGEX, release_date):
+        print(f"{release_date} is not a valid date.")
+        sys.exit(5)
 
 if formats == None:
     print("No formats specified, all done.")
     sys.exit(0)
-
 
 # Src: https://stackoverflow.com/questions/22058048/hashing-a-file-in-python#22058673
 def md5sum(path):
@@ -46,9 +61,30 @@ def md5sum(path):
             md5.update(data)
     return md5.hexdigest()
 
-RELEASE_XPATH = '//p[@class="epaper-info-release-date"]'
-DOWNLOAD_XPATH = "//a[contains(text(), '{}')]"
-DATE_REGEX = r"^\d{2}\.\d{2}\.\d{4}$"
+def download_file(format, filename, req_session, doc):
+    link_elements = document.xpath(DOWNLOAD_XPATH.format(format_btns[fmt]))
+    if len(link_elements) < 1:
+        return -1
+    link = link_elements[0].attrib['href']
+
+    request_headers = {}
+    if os.path.exists(filename) and not forcereload:
+        # Somehow E-Tags do not work for PDF
+        if fmt == 'pdf':
+            return -2
+        else:
+            request_headers["If-None-Match"] = '"' + md5sum(filename) + '"'
+
+    url = "https://epaper.zeit.de" + link \
+            if not link.startswith('https') else link
+
+    response = s.get(url, headers=request_headers)
+    if response.status_code == 304:
+        return 304
+    if response.status_code != 200:
+        return response
+    return response.content
+
 
 s = requests.Session()
 headers = {
@@ -75,51 +111,49 @@ format_btns = {
     'epub': 'EPUB FÜR E-READER LADEN'
 }
 
-response = s.get('https://epaper.zeit.de/abo/diezeit')
+# Figure out which date to use if no date was supplied directly
+if not release_date:
+    num = 0
+    if num_release:
+        num = num_release
+    response = s.get('https://epaper.zeit.de/abo/diezeit')
+    document = lxml.html.fromstring(response.text)
+    latest_releases = list(map(lambda el: el.text,
+                               document.xpath(RELEASE_XPATH)))
+    if not re.match(DATE_REGEX, latest_releases[num]):
+        print(f"Scraping broken, {latest_releases[num]} not valid date.")
+    release_date = latest_releases[num]
 
-document = lxml.html.fromstring(response.text)
-release_dates = list(map(lambda el: el.text,
-        document.xpath(RELEASE_XPATH)))
-latest_release = release_dates[0]
-
-if not re.match(DATE_REGEX, latest_release):
-    print(f"Scraping broken, {latest_release} not valid date.")
-
-response = s.get(f"https://epaper.zeit.de/abo/diezeit/{latest_release}")
+# Get buttons for format downloads
+# This is done separated from the download_file function to
+# avoid an overhead through multiple downloads
+response = s.get(f"https://epaper.zeit.de/abo/diezeit/{release_date}")
+if (response.url == 'https://epaper.zeit.de/abo/diezeit'):
+    print(f"No release published on {release_date}")
+    sys.exit(6)
 document = lxml.html.fromstring(response.text)
 
 for fmt in formats:
-    link_elements = document.xpath(DOWNLOAD_XPATH.format(format_btns[fmt]))
-    if len(link_elements) < 1:
-        print(f"Skipping {fmt} download, scraping broken")
-    link = link_elements[0].attrib['href']
-
     # Get filename from Content-Disposition header
-    date = "-".join(latest_release.split(".")[::-1])
-    filename = 'die_zeit_' + date + "." + fmt
-
-    request_headers = {}
-    if os.path.exists(filename) and not forcereload:
-        # Somehow E-Tags do not work for PDF
-        if fmt == 'pdf':
-            print(f"File {filename} already exits. If you want to download anyway, use --reload")
-            continue
-        else:
-            request_headers["If-None-Match"] = '"' + md5sum(filename) + '"'
-
-    url = "https://epaper.zeit.de" + link \
-            if not link.startswith('https') else link
-    print(f"Downloading {fmt} from {url}...")
-    response = s.get(url, headers=request_headers)
-
-    if response.status_code == 304:
-        print("  => Skipped, file did not change")
+    date = "-".join(release_date.split(".")[::-1])
+    filename = 'die_zeit_' + release_date + "." + fmt
+    
+    print(f"Downloading {fmt}...")
+    response = download_file(fmt, filename, s, document)
+    if (response == -1):
+        print(f"Skipping {fmt} download, scraping broken")
+        continue
+    elif (response == -2):
+        print(f"File {filename} already exits. If you want to download anyway, use --reload")
+        continue
+    elif (response == 304):
+        print(" => Skipped, file did not change")
+        continue
+    elif (isinstance(response, int)):
+        print(f"Request returned status {response}", file=sys.stderr)
         continue
 
-    if response.status_code != 200:
-        print(f"Request for {url} returned status {response.status_code}", file=sys.stderr)
-        sys.exit(-1)
-
+    # Everything is clear, function returns actual file
     with open(filename, 'wb') as file:
-        file.write(response.content)
+        file.write(response)
     print(f"Downloaded {fmt} to {filename}")
