@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import requests
 import lxml.html
-import cgi
 import sys
 import re
 import os.path
