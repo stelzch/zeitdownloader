@@ -1,5 +1,9 @@
 # Die ZEIT Downloader
 
+> [!IMPORTANT]
+> As of 2025, zeit.de switched their login system and now require a CAPTCHA.
+> This script therefore does no longer work.
+
 This is a simple downloader for the digital formats of the weekly newspaper [Die Zeit](https://www.zeit.de). A digital subscription is required.
 It is written in 125 lines of python
 
